@@ -1,172 +1,185 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { Configuration, OpenAIApi } from 'openai';
+import OpenAI from "openai";
 
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+  baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
 });
-const openai = new OpenAIApi(configuration);
 
-const isEmpty = (str: string) => !str.trim().length
+// Define interfaces with configurable examples
+interface Meaning {
+  type: "noun" | "verb" | "adjective" | "adverb" | string;
+  value: string;
+  [key: `example${number}`]: string; // Allows for dynamically named example properties
+}
 
-const getPrompt = (topicType: string, promptType: string, question: string, content: string) => {
-  let actor, questionType
-  switch (topicType) {
-    case 'IELTS Writing':
-      questionType = 'IELTS Writing Task 2'
-      actor = 'an IELTS test taker with a band score of 8.0'
-      break
-    case 'IELTS Speaking':
-      questionType = 'IELTS Speaking'
-      actor = 'an IELTS test taker with a band score of 8.0'
-      break
-    case 'Debate':
-      questionType = 'debate'
-      actor = 'a debater'
-      break
-    default:
-      questionType = ''
-      actor = 'a person'
-      break
+interface LanguageMeaning {
+  language: string;
+  meaning: Meaning[];
+}
+
+
+// Function to create schema with configurable number of examples
+function createSchema(exampleCount: number) {
+  // Create properties object for the examples
+  const exampleProperties: Record<string, { type: string }> = {};
+  for (let i = 1; i <= exampleCount; i++) {
+    exampleProperties[`example${i}`] = { type: "string" };
   }
+  
+  // Create required array for examples
+  const exampleRequired = Array.from(
+    { length: exampleCount }, 
+    (_, i) => `example${i + 1}`
+  );
+  
+  return {
+    type: "object",
+    properties: {
+      languages: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            language: { type: "string" },
+            meaning: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  type: { type: "string" },
+                  value: { type: "string" },
+                  ...exampleProperties
+                },
+                required: ["type", "value", ...exampleRequired]
+              }
+            }
+          },
+          required: ["language", "meaning"]
+        }
+      }
+    },
+    required: ["languages"]
+  };
+}
 
-  switch (promptType) {
-    // Brainstorming
-    case 'outline':
-      return `Act as ${actor}. Write an essay outline in response to the following ${questionType} question: ${question}`
-    case 'support_arguments':
-      return `Act as ${actor}. Given the following ${questionType} question, generate 3 arguments to support the statement: ${question}`
-    case 'oppose_arguments':
-      return `Act as ${actor}. Given the following ${questionType} question, generate 3 arguments to oppose the statement: ${question}`
-    case 'sample_answer':
-      return `Act as ${actor}. Write an essay in response to the following ${questionType} question with at least 250 words: ${question}`
+async function getWordMeanings(
+  word: string, 
+  languages: string[] = ["English", "French"],
+  exampleCount: number = 2
+): Promise<{ languages: LanguageMeaning[] }> {
+  
+  // Create a nice comma-separated list with proper grammar
+  const languageList = languages.length > 1
+    ? languages.slice(0, -1).join(", ") + " and " + languages[languages.length - 1]
+    : languages[0];
 
-    // While writing
-    case 'introduction':
-      return `Act as ${actor}. Write a short introduction paragraph for an essay in response to the following ${questionType} question:: ${question}`
-    case 'conclusion':
-      return `Act as ${actor}. Write a short conclusion paragraph for this half-done essay:
-"${content}"
-For your information, the essay is written in response to the following ${questionType} question: ${question}`
-    case 'elaborate':
-      return `Act as ${actor}. Elaborate/Explain the following argument in 3-4 sentences:
-"${content}"
-For your information, the essay is written in response to the following ${questionType} question: ${question}`
-    case 'example':
-      return `Act as ${actor}. Give and explain an example in support of the following argument in 1-2 sentences:
-"${content}"
-For your information, the essay is written in response to the following ${questionType} question: ${question}`
-    case 'finish_sentence':
-      return `Act as ${actor}. Finish this sentence for me:
-"${content}"
-For your information, the essay is written in response to the following ${questionType} question: ${question}`
+    const schemaInstructions = `
+    Return the response as a valid JSON object with exactly this structure:
+    {
+      "languages": [
+        {
+          "language": "LanguageName",
+          "meaning": [
+            {
+              "type": "part-of-speech",
+              "value": "meaning-in-this-language",
+              ${Array.from({ length: exampleCount }, (_, i) => 
+                `"example${i + 1}": "example sentence ${i + 1}"`).join(',\n          ')}
+            }
+          ]
+        }
+      ]
+    }
+    
+    Do not include any explanation, just return valid JSON that can be parsed directly.
+    `;
+  
+  const response = await openai.chat.completions.create({
+    model: "gemini-2.0-flash",
+    messages: [
+      { 
+        role: "system", 
+        content: `You are a multilingual assistant that provides word meanings with ${exampleCount} examples for each meaning. Always respond with a valid JSON object following the exact schema specifications.` 
+      },
+      { 
+        role: "user", 
+        content: `Provide meanings and ${exampleCount} usage examples for the word "${word}" in the following languages: ${languageList}. ${schemaInstructions}` 
+      }
+    ],
+    temperature: 0.2
+  });
 
-    // Edit essay
-    case 'correct_mistakes':
-      return `Point out clearly the mistakes in this essay and how to correct them: ${content}`
-    case 'paraphrase':
-      return `Paraphrase/Rephrase this sentence/paragraph: 
-${content}`
-    case 'make_longer':
-      return `Make this ${questionType} essay longer by elaborating on the existing points (don't add more arguments):
-"${content}"
-For your information, the essay is written in response to the following ${questionType} question: ${question}`
-    case 'make_simpler':
-      return `Rewrite this ${questionType} essay using simpler/more academic language: 
-${content}`
-    case 'improve':
-      return `Improve/Perfect this essay: 
-${content}`
-
-    // Feedback for essay
-    case 'suggestions':
-      return `What are the strengths & weaknesses of this essay? Give your suggestions for improvement for the writer: 
-${content}`
-
-    // Learn vocab
-    case 'dictionary':
-      return `Explain the meaning of ${content} and give me an example of how to use it in real life.`
-    case 'synonyms':
-      return `Give me 5 synonyms of ${content}`
-    case 'antonyms':
-      return `Give me 5 antonyms of ${content}`
-    case 'other_ways_to_say':
-      return `Give me 10 other ways to say ${content}`
-
-    case 'summarize':
-      return `Act as a summarizer and summarize this essay: 
-${content}`
-
-    default:
-      return ''
+  try {
+    // Extract JSON from the response
+    const text = response.choices[0].message.content || '{}';
+    
+    // Try to find JSON in the response
+    const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || 
+                     text.match(/\{[\s\S]*\}/);
+                     
+    let parsedResponse: { languages: LanguageMeaning[] };
+    
+    if (jsonMatch) {
+      // If JSON was returned in a code block or can be identified
+      parsedResponse = JSON.parse(jsonMatch[0].replace(/```json\n|```/g, ''));
+    } else {
+      // Fall back to trying to parse the whole response
+      parsedResponse = JSON.parse(text);
+    }
+    
+    return parsedResponse;
+  } catch (error) {
+    console.error('Error parsing JSON response:', error);
+    console.log('Raw response:', response.choices[0].message.content);
+    throw new Error('Failed to parse response as JSON');
   }
 }
 
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<any>
+  res: NextApiResponse
 ) {
-  if (!configuration.apiKey) {
+  console.log("Prompt API")
+  if (!openai.apiKey) {
     res.status(500).json({
       error: {
-        message:
-          'OpenAI API key not configured, please follow instructions in README.md',
+        message: 'OpenAI API key not configured, please follow instructions in README.md',
       },
     });
     return;
   }
 
-  const temperature = req.body.temperature || 1;
-
-  const question = req.body.question || '';
-  const topicType = req.body.topicType || '';
-  const promptType = req.body.promptType || '';
-  const content = req.body.content || '';
-
-  if (isEmpty(question) || isEmpty(topicType) || isEmpty(promptType)) {
-    res.status(400).json({
-      error: {
-        message: 'Invalid args',
-      },
-    });
-    return;
-  }
-
-  const prompt = getPrompt(topicType, promptType, question, content)
-  if (isEmpty(prompt)) {
-    res.status(400).json({
-      error: {
-        message: 'Invalid prompt',
-      },
-    });
-    return;
-  }
-  console.log(prompt)
-
+  const textToTranslate = req.body.textToTranslate || '';
+  console.log("Text to be translated:", textToTranslate)
   try {
-    const completion = await openai.createCompletion({
-      model: 'text-davinci-003',
-      prompt,
-      temperature,
-      max_tokens: 550,
-      // top_p: 1.0,
-      // frequency_penalty: 0.0,
-      // presence_penalty: 0.0,
-    });
-    res.status(200).json({ result: completion.data.choices[0].text });
-  } catch (error: any) {
-    // Consider adjusting the error handling logic for your use case
-    if (error.response) {
-      console.error(error.response.status, error.response.data);
-      res.status(error.response.status).json(error.response.data);
-    } else {
-      console.error(`Error with OpenAI API request: ${error.message}`);
-      res.status(500).json({
-        error: {
-          message: 'An error occurred during your request.',
-        },
+    const wordData = await getWordMeanings(textToTranslate, req.body.languages, 3);
+    console.log(JSON.stringify(wordData, null, 2));
+    
+    res.status(200).json({ result: wordData });
+
+
+    // Using the correct method for OpenAI client
+    wordData.languages.forEach(lang => {
+      console.log(`\n== ${lang.language} ==`);
+      lang.meaning.forEach(m => {
+        console.log(`  As ${m.type}: ${m.value}`);
+        // Dynamically get all example properties
+        Object.keys(m)
+          .filter(key => key.startsWith('example'))
+          .sort((a, b) => {
+            // Sort examples by number
+            const numA = parseInt(a.replace('example', ''));
+            const numB = parseInt(b.replace('example', ''));
+            return numA - numB;
+          })
+          .forEach(key => {
+            console.log(`    - ${m[key]}`);
+          });
       });
-    }
+    });
+  } catch (error) {
+    console.error('Error:', error);
   }
 }
