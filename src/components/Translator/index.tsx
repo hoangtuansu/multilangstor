@@ -23,6 +23,7 @@ import {
 
 import { useRef, useState, useId, useEffect } from 'react';
 import chroma from 'chroma-js';
+import FrenchContent from '../FrenchContent';
 
 interface LanguageOption {
   readonly name: string;
@@ -31,13 +32,12 @@ interface LanguageOption {
 }
 
 const languageOptions: readonly LanguageOption[] = [
-  { name: 'English', shortLabel: 'EN', color: '#00B8D9'},
+  { name: 'English', shortLabel: 'EN', color: '#00B8D9' },
   { name: 'French', shortLabel: 'FR', color: '#5243AA' },
-  { name: 'Vietnamese', shortLabel: 'VI', color: '#5243AA' },
-  { name: 'Chinese', shortLabel: 'CN', color: '#5243AA' },
-  { name: 'Italian', shortLabel: 'IT', color: '#5243AA' },
+  { name: 'Vietnamese', shortLabel: 'VI', color: '#66BB6A' },
+  { name: 'Chinese', shortLabel: 'CN', color: '#EF5350' },
+  { name: 'Italian', shortLabel: 'IT', color: '#FFCA28' }
 ];
-
 const translateButton = [
   {
     name: 'Translate',
@@ -70,9 +70,9 @@ const Translator = () => {
 
   const queryPrompt = async () => {
     setLoadingPrompt(true);
-    
+
     try {
-      const response = await fetch('/api/prompt', {
+      const response = await fetch('/api/translate', {
         method: 'POST',
         headers: {
           Accept: 'application/json',
@@ -239,7 +239,7 @@ const Translator = () => {
             />
             <VStack w="40%" spacing={4} alignItems="flex-start">
               <Box flex="1" w="100%">
-                <Menu closeOnSelect={false} isOpen={isOpen} onOpen={onOpen} onClose={onClose}>
+                <Menu closeOnSelect={false}>
                   <MenuButton as={Button} colorScheme="blue" height="45px" minWidth="200px">
                     Languages
                   </MenuButton>
@@ -269,51 +269,55 @@ const Translator = () => {
         </VStack>
         
         <Box w="100%" flex="1" overflowY="auto">
-          <SimpleGrid 
-            columns={{ base: 1, md: 2 }}
-            spacing={4}
-            w="100%"
-          >
-            {selectedLanguages.map((lang) => {
-              const meanings = findLanguageData(lang);
-              return (
-                <Card key={lang} w="100%">
-                  <CardHeader bg={chroma(getColorByName(lang)).alpha(0.2).css()} py={2}>
-                    <Heading size="sm" textTransform="uppercase">
-                      {lang}
-                    </Heading>
-                  </CardHeader>
-                  <CardBody>
-                    {meanings.length > 0 ? (
-                      meanings.map((meaning: any, index: number) => (
-                        <Box key={index} mb={index === meanings.length - 1 ? 0 : 4}>
-                          <Box display="flex" alignItems="baseline" mb={1}>
-                            <Text as="span" fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase" mr={2}>
-                              {meaning.type}
-                            </Text>
-                            <Text as="span" fontWeight="medium" fontSize="md">
-                              {meaning.value}
-                            </Text>
-                          </Box>
-                          <List spacing={1} pl={4}>
-                            {Object.keys(meaning)
-                              .filter(key => key.startsWith('example'))
-                              .sort((a, b) => parseInt(a.replace('example', '')) - parseInt(b.replace('example', '')))
-                              .map(key => (
-                                <ListItem key={key} fontStyle="italic" color="gray.700">
-                                  "{meaning[key]}"
-                                </ListItem>
-                              ))}
-                          </List>
-                        </Box>
-                      ))
-                    ) : (
-                      <Text>No data available yet.</Text>
-                    )}
-                  </CardBody>
-                </Card>
-              );
-            })}
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
+            {
+              selectedLanguages.map((lang) => {
+                  const meanings = findLanguageData(lang);
+                  return (
+                    <Card key={lang} w="100%">
+                      <CardHeader bg={chroma(getColorByName(lang)).alpha(0.2).css()} py={2}>
+                        <Heading size="sm" textTransform="uppercase">
+                          {lang}
+                        </Heading>
+                      </CardHeader>
+                      <CardBody>
+                        {
+                          meanings.length > 0 ? (
+                              meanings.map((meaning: any, index: number) => 
+                                (
+                                  <Box key={index} mb={index === meanings.length - 1 ? 0 : 4}>
+                                    <Box display="flex" alignItems="baseline" mb={1}>
+                                      <Text as="span" fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase" mr={2}>
+                                        {meaning.type}
+                                      </Text>
+                                      <Text as="span" fontWeight="medium" fontSize="md">
+                                        {meaning.value}
+                                      </Text>
+                                    </Box>
+                                    <List spacing={1} pl={4}>
+                                      {Object.keys(meaning)
+                                        .filter(key => key.startsWith('example'))
+                                        .sort((a, b) => parseInt(a.replace('example', '')) - parseInt(b.replace('example', '')))
+                                        .map(key => (
+                                          <ListItem key={key} fontStyle="italic" color="gray.700">
+                                            "{meaning[key]}"
+                                          </ListItem>
+                                        ))}
+                                    </List>
+                                  </Box>
+                                )
+                            ),
+                          ) : (<Text>No data available yet.</Text>)
+                        }
+                            
+
+                            
+                      </CardBody>
+                    </Card>
+                  );
+                }
+              )
+            }
           </SimpleGrid>
         </Box>
       </VStack>
