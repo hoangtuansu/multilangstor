@@ -4,7 +4,7 @@ export async function getSchemaInstructions(
   ): Promise<string> {
 
     const conditionaledFrenchConjugation = `
-                ... if language is "French" and its type is a "verb", include:
+                ... if language is "French" and any meaning as a "verb", include:
                 "conjugation": {
                  "indicative": {
                     "présent": {
@@ -133,7 +133,7 @@ export async function getSchemaInstructions(
                 }`
 
     const schemaInstructions = `
-      Return the response as a valid JSON object with exactly this structure:
+      Return the response as a valid JSON object with exactly this structure, note that the conjugation part should be outside the meaning:
       {
         "languages": [
           {
@@ -150,9 +150,9 @@ export async function getSchemaInstructions(
                     `
                 }
                 ${conditionalIdioms}
-                ${conditionaledFrenchConjugation}
               }
-            ]
+            ],
+            ${conditionaledFrenchConjugation}
           }
         ]
       }

@@ -161,7 +161,7 @@ const Translator = () => {
       (lang: any) => lang.language?.toLowerCase() === langValue.toLowerCase()
     );
     
-    return language?.meaning || [];
+    return language || {};
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -272,7 +272,8 @@ const Translator = () => {
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
             {
               selectedLanguages.map((lang) => {
-                  const meanings = findLanguageData(lang);
+                  const languageTranslation = findLanguageData(lang);
+                  const meanings = languageTranslation?.meaning || [];
                   return (
                     <Card key={lang} w="100%">
                       <CardHeader bg={chroma(getColorByName(lang)).alpha(0.2).css()} py={2}>
@@ -281,34 +282,52 @@ const Translator = () => {
                         </Heading>
                       </CardHeader>
                       <CardBody>
-                        {
-                          meanings.length > 0 ? (
-                              meanings.map((meaning: any, index: number) => 
-                                (
-                                  <Box key={index} mb={index === meanings.length - 1 ? 0 : 4}>
-                                    <Box display="flex" alignItems="baseline" mb={1}>
-                                      <Text as="span" fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase" mr={2}>
-                                        {meaning.type}
-                                      </Text>
-                                      <Text as="span" fontWeight="medium" fontSize="md">
-                                        {meaning.value}
-                                      </Text>
-                                    </Box>
-                                    <List spacing={1} pl={4}>
-                                      {Object.keys(meaning)
-                                        .filter(key => key.startsWith('example'))
-                                        .sort((a, b) => parseInt(a.replace('example', '')) - parseInt(b.replace('example', '')))
-                                        .map(key => (
-                                          <ListItem key={key} fontStyle="italic" color="gray.700">
-                                            "{meaning[key]}"
-                                          </ListItem>
-                                        ))}
-                                    </List>
+                      {
+                        meanings.length > 0 ? (
+                          <>
+                            {
+                              meanings.map((meaning: any, index: number) => (
+                                <Box key={index} mb={index === meanings.length - 1 ? 0 : 4}>
+                                  <Box display="flex" alignItems="baseline" mb={1}>
+                                    <Text as="span" fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase" mr={2}>
+                                      {meaning.type}
+                                    </Text>
+                                    <Text as="span" fontWeight="medium" fontSize="md">
+                                      {meaning.value}
+                                    </Text>
                                   </Box>
-                                )
-                            ),
-                          ) : (<Text>No data available yet.</Text>)
-                        }
+                                  <List spacing={1} pl={4}>
+                                    {Object.keys(meaning)
+                                      .filter(key => key.startsWith('example'))
+                                      .sort((a, b) => parseInt(a.replace('example', '')) - parseInt(b.replace('example', '')))
+                                      .map(key => (
+                                        <ListItem key={key} fontStyle="italic" color="gray.700">
+                                          "{meaning[key]}"
+                                        </ListItem>
+                                      ))}
+                                  </List>
+                                </Box>
+                              ))
+                            }
+                            
+                            {(lang === 'French' && languageTranslation.conjugation !== undefined) && (
+                              <>
+                                <Box display="flex" justifyContent="flex-end" mt={4}>
+                                  <Button colorScheme="blue" onClick={onOpen}>
+                                    Conjugation
+                                  </Button>
+                                </Box>
+                                <FrenchContent
+                                  isOpen={isOpen}
+                                  conjugationData={languageTranslation.conjugation}
+                                  onClose={onClose}
+                                />
+                              </>
+                            )}
+                          </>
+                        ) : (
+                          <Text>No data available yet.</Text>
+                        )}
                             
 
                             
