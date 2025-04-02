@@ -6,7 +6,6 @@ import {
   ModalFooter,
   ModalBody,
   ModalCloseButton,
-  useDisclosure,
   Box,
   Heading,
   Grid,
@@ -14,9 +13,8 @@ import {
   Text,
   Button,
 } from '@chakra-ui/react';
-import { useRef, useState } from 'react';
 
-function FrenchContent({ isOpen, conjugationData, onClose }: { isOpen: boolean; conjugationData: Object, onClose: () => void }) {
+function FrenchContent({ isOpen, conjugationData, onClose }: { isOpen: boolean, conjugationData: any, onClose: () => void }) {
   
   const indicative = conjugationData['indicative'];
   const subjonctif = conjugationData['subjonctif'];

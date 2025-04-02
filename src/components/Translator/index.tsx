@@ -167,7 +167,7 @@ const Translator = () => {
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter' || event.key === ' ') {
       specialKeyPressed.current = true;
-      setTextToTranslate(event.currentTarget.value);
+      setTextToTranslate((event.currentTarget as HTMLTextAreaElement).value);
       processTextForLanguages();
     }
   };

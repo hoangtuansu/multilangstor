@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multilangstor
+spec:
+  replicas: 2 # Adjust as needed
+  selector:
+    matchLabels:
+      app: multilangstor
+  template:
+    metadata:
+      labels:
+        app: multilangstor
+    spec:
+      containers:
+        - name: multilangstor-container
+          image: ${IMAGE_NAME}:${IMAGE_TAG}
+          ports:
+            - containerPort: 3000
+          env: # Add environment variables as needed
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multilangstor-service
+spec:
+  selector:
+    app: multilangstor
+  ports:
+    - protocol: TCP
+      port: 80 # Service port
+      targetPort: 3000 # Container port
+  type: ClusterIP # Or LoadBalancer for external access
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: multilangstor-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: multilangstor.com # Replace with your domain
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: multilangstor-service
+                port:
+                  number: 80
