@@ -21,7 +21,7 @@ import {
   VStack,
 } from '@chakra-ui/react';
 
-function FrenchContent({ isOpen, conjugationData, onClose }: { isOpen: boolean, conjugationData: any, onClose: () => void }) {
+function ConjugationModal({ isOpen, conjugationData, onClose }: { isOpen: boolean, conjugationData: any, onClose: () => void }) {
   const conjugationModes = {
     indicative: "Indicative",
     subjonctif: "Subjunctive",
@@ -210,4 +210,4 @@ function FrenchContent({ isOpen, conjugationData, onClose }: { isOpen: boolean, 
   );
 }
 
-export default FrenchContent;
+export default ConjugationModal;
