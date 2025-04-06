@@ -5,7 +5,6 @@ import {
   HStack,
   Spinner,
   Text,
-  Textarea,
   Tooltip,
   useToast,
   Menu,
@@ -18,12 +17,21 @@ import {
   List,
   ListItem,
   Card, CardHeader, CardBody,
-  SimpleGrid
+  SimpleGrid,
+  Tabs,
+  TabList,
+  Tab,
+  TabPanels,
+  TabPanel,
+  IconButton,
+  Flex
 } from '@chakra-ui/react';
+import { FaLanguage, FaBook } from 'react-icons/fa';
 
-import { useRef, useState, useId, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import chroma from 'chroma-js';
 import FrenchContent from '../FrenchContent';
+import TranslationInput from './TranslationInput';
 
 interface LanguageOption {
   readonly name: string;
@@ -49,82 +57,16 @@ const translateButton = [
 const Translator = () => {
   const toast = useToast();
   const [mounted, setMounted] = useState(false);
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [sourceLanguage, setSourceLanguage] = useState<string>('');
+  const [destinationLanguages, setDestinationLanguages] = useState<string[]>([]);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [textToTranslate, setTextToTranslate] = useState('');
   const [loadingPrompt, setLoadingPrompt] = useState(false);
   const [meaningResult, setMeaningResult] = useState({ languages: [] });
-
-  const contentRef = useRef<HTMLTextAreaElement | null>(null);
-  const timeoutId = useRef<any>(null);
-  const specialKeyPressed = useRef(false);
+  const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
     setMounted(true);
-    return () => {
-      if (timeoutId.current) {
-        clearTimeout(timeoutId.current);
-      }
-    };
   }, []);
-
-  const queryPrompt = async () => {
-    setLoadingPrompt(true);
-
-    try {
-      const response = await fetch('/api/translate', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          textToTranslate, 
-          languages: selectedLanguages
-        }),
-      });
-      
-      setLoadingPrompt(false);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        toast({
-          title: 'Error',
-          description: errorData?.error?.message || 'An error occurred',
-          status: 'error',
-          duration: 9000,
-          isClosable: true,
-        });
-        return '';
-      }
-
-      const data = await response.json();
-      console.log("API returned data:", data);
-      
-      return data.result || { languages: [] };
-    } catch (error) {
-      setLoadingPrompt(false);
-      console.error("API fetch error:", error);
-      return { languages: [] };
-    }
-  };
-
-  const processTextForLanguages = async () => {
-    if (!textToTranslate) return;
-       
-    try {
-      const res = await queryPrompt();
-      if (res && typeof res === 'object') {
-        setMeaningResult(res);
-      } else {
-        console.error("Invalid response format:", res);
-        setMeaningResult({ languages: [] });
-      }
-    } catch (error) {
-      console.error("Error processing text:", error);
-      setMeaningResult({ languages: [] });
-    }
-  };
 
   const renderButtons = (
     buttons: any[],
@@ -139,10 +81,9 @@ const Translator = () => {
               colorScheme={color}
               variant="solid"
               width="100%"
-              h="45px" // Standard Chakra button height
-              minW="200px" // Match the minWidth of MenuList
-              isDisabled={!textToTranslate || isDisabled}
-              onClick={() => processTextForLanguages()}
+              h="45px"
+              minW="200px"
+              isDisabled={isDisabled}
             >
               {btn.name}
             </Button>
@@ -164,29 +105,6 @@ const Translator = () => {
     return language || {};
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      specialKeyPressed.current = true;
-      setTextToTranslate((event.currentTarget as HTMLTextAreaElement).value);
-      processTextForLanguages();
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (specialKeyPressed.current) {
-      specialKeyPressed.current = false;
-      setTextToTranslate(e.target.value);
-      return;
-    }
-
-    setTextToTranslate(e.target.value);
-    clearTimeout(timeoutId.current);
-
-    timeoutId.current = setTimeout(() => {
-      processTextForLanguages();
-    }, 2000);
-  };
-
   function getColorByName(languageName: string): string {
     const foundLanguage = languageOptions.find(
       (option) => option.name === languageName
@@ -194,13 +112,76 @@ const Translator = () => {
     return foundLanguage?.color || '#5243AA';
   }
 
+  const renderLanguageSelectors = () => {
+    return (
+      <VStack w="30%" spacing={4} alignItems="flex-start">
+        <HStack spacing={4} w="100%" alignItems="flex-start">
+          <Box flex="1">
+            <Menu closeOnSelect={true}>
+              <MenuButton as={Button} colorScheme="blue" height="45px" minWidth="200px" width="100%">
+                Source: {sourceLanguage || 'Select'}
+              </MenuButton>
+              <MenuList minWidth="200px">
+                <MenuOptionGroup 
+                  value={sourceLanguage} 
+                  onChange={(value) => {
+                    setSourceLanguage(value as string);
+                    setActiveTab(0);
+                  }}
+                  type="radio">
+                  {languageOptions.map((option) => (
+                    <MenuItemOption key={option.name} value={option.name}>
+                      {option.name}
+                    </MenuItemOption>
+                  ))}
+                </MenuOptionGroup>
+              </MenuList>
+            </Menu>
+          </Box>
+        </HStack>
+        <HStack spacing={4} w="100%" alignItems="flex-start">
+          <Box flex="1">
+            <Menu closeOnSelect={false}>
+              <MenuButton as={Button} colorScheme="blue" height="45px" minWidth="200px" width="100%">
+                Destination
+              </MenuButton>
+              <MenuList minWidth="200px">
+                <MenuOptionGroup 
+                  value={destinationLanguages} 
+                  onChange={(values) => {
+                    if (Array.isArray(values)) {
+                      setDestinationLanguages(values);
+                      setActiveTab(0);
+                    } else {
+                      setDestinationLanguages([values]);
+                      setActiveTab(0);
+                    }
+                  }}
+                  type="checkbox">
+                  {languageOptions.map((option) => (
+                    <MenuItemOption key={option.name} value={option.name}>
+                      {option.name}
+                    </MenuItemOption>
+                  ))}
+                </MenuOptionGroup>
+              </MenuList>
+            </Menu>
+          </Box>
+        </HStack>
+        {renderButtons(translateButton, 'cyan', !sourceLanguage || !destinationLanguages.length)}
+      </VStack>
+    );
+  };
+
   return (
     <div style={{ 
       position: 'relative', 
       height: '100vh', 
       width: '100%', 
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      alignItems: 'center',
+      overflow: 'hidden'
     }}>
       {loadingPrompt && (
         <HStack
@@ -223,122 +204,162 @@ const Translator = () => {
         style={{
           ...loadingPrompt ? { filter: 'blur(.9px)' } : {},
           height: '100%',
-          width: '100%'
+          width: '80%',
+          maxWidth: '1200px',
+          overflow: 'hidden'
         }}
       >
-        <VStack w="100%" spacing={2} alignItems="flex-start">
+        <VStack w="100%" spacing={2} alignItems="flex-start" flexShrink={0}>
           <HStack alignItems="flex-start" w="100%" gap={2}>
-            <Textarea
-              ref={contentRef}
-              placeholder="Enter text to translate"
-              rows={4}
-              w="60%"
-              value={textToTranslate}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
+            <TranslationInput
+              onTranslationComplete={(result) => {
+                setMeaningResult(result);
+              }}
+              onLoadingChange={setLoadingPrompt}
+              selectedLanguages={destinationLanguages}
             />
-            <VStack w="40%" spacing={4} alignItems="flex-start">
-              <Box flex="1" w="100%">
-                <Menu closeOnSelect={false}>
-                  <MenuButton as={Button} colorScheme="blue" height="45px" minWidth="200px">
-                    Languages
-                  </MenuButton>
-                  <MenuList minWidth="200px">
-                    <MenuOptionGroup 
-                      value={selectedLanguages} 
-                      onChange={(values: string | string[]) => {
-                        if (Array.isArray(values)) {
-                          setSelectedLanguages(values);
-                        } else {
-                          setSelectedLanguages([values]);
-                        }
-                      }}
-                      type="checkbox">
-                      {languageOptions.map((option) => (
-                        <MenuItemOption key={option.name} value={option.name}>
-                          {option.name}
-                        </MenuItemOption>
-                      ))}
-                    </MenuOptionGroup>
-                  </MenuList>
-                </Menu>
-              </Box>
-              {renderButtons(translateButton, 'cyan', !textToTranslate)}
-            </VStack>
+            {renderLanguageSelectors()}
           </HStack>
         </VStack>
         
-        <Box w="100%" flex="1" overflowY="auto">
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} w="100%">
-            {
-              selectedLanguages.map((lang) => {
-                  const languageTranslation = findLanguageData(lang);
-                  const meanings = languageTranslation?.meaning || [];
-                  return (
-                    <Card key={lang} w="100%">
-                      <CardHeader bg={chroma(getColorByName(lang)).alpha(0.2).css()} py={2}>
+        <HStack w="100%" flex="1" spacing={4} alignItems="flex-start" overflow="hidden">
+          <Box w="150px" h="100%" overflowY="auto" css={{
+            '&::-webkit-scrollbar': {
+              width: '4px',
+            },
+            '&::-webkit-scrollbar-track': {
+              width: '6px',
+              background: 'transparent',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: 'gray.300',
+              borderRadius: '24px',
+            },
+          }}>
+            <Tabs 
+              orientation="vertical" 
+              variant="enclosed" 
+              index={activeTab}
+              onChange={setActiveTab}
+            >
+              <TabList>
+                {destinationLanguages.map((lang) => (
+                  <Tab key={lang} justifyContent="flex-start">
+                    {lang}
+                  </Tab>
+                ))}
+              </TabList>
+            </Tabs>
+          </Box>
+          
+          <Box 
+            flex="1" 
+            h="100%" 
+            overflowY="auto" 
+            pr={4}
+            css={{
+              '&::-webkit-scrollbar': {
+                width: '4px',
+              },
+              '&::-webkit-scrollbar-track': {
+                width: '6px',
+                background: 'transparent',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: 'gray.300',
+                borderRadius: '24px',
+              },
+            }}
+          >
+            {destinationLanguages.map((lang, index) => {
+              const languageTranslation = findLanguageData(lang);
+              const meanings = languageTranslation?.meaning || [];
+              return (
+                <Box 
+                  key={lang} 
+                  display={activeTab === index ? 'block' : 'none'}
+                >
+                  <Card w="100%">
+                    <CardHeader 
+                      bg={chroma(getColorByName(lang)).alpha(0.2).css()} 
+                      py={1}
+                      h="48px"
+                      display="flex"
+                      alignItems="center"
+                    >
+                      <Flex justify="space-between" align="center" gap={2}>
                         <Heading size="sm" textTransform="uppercase">
                           {lang}
                         </Heading>
-                      </CardHeader>
-                      <CardBody>
-                      {
-                        meanings.length > 0 ? (
-                          <>
-                            {
-                              meanings.map((meaning: any, index: number) => (
-                                <Box key={index} mb={index === meanings.length - 1 ? 0 : 4}>
-                                  <Box display="flex" alignItems="baseline" mb={1}>
-                                    <Text as="span" fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase" mr={2}>
-                                      {meaning.type}
-                                    </Text>
-                                    <Text as="span" fontWeight="medium" fontSize="md">
-                                      {meaning.value}
-                                    </Text>
-                                  </Box>
-                                  <List spacing={1} pl={4}>
-                                    {Object.keys(meaning)
-                                      .filter(key => key.startsWith('example'))
-                                      .sort((a, b) => parseInt(a.replace('example', '')) - parseInt(b.replace('example', '')))
-                                      .map(key => (
-                                        <ListItem key={key} fontStyle="italic" color="gray.700">
-                                          "{meaning[key]}"
-                                        </ListItem>
-                                      ))}
-                                  </List>
+                        <HStack spacing={2}>
+                          <Tooltip label="Show idioms">
+                            <IconButton
+                              aria-label="Show idioms"
+                              icon={<FaBook size={22} />}
+                              size="md"
+                              colorScheme="blue"
+                              variant="ghost"
+                              onClick={() => {}}
+                            />
+                          </Tooltip>
+                          {lang === 'French' && languageTranslation?.conjugation && Object.keys(languageTranslation.conjugation).length > 0 && (
+                            <Tooltip label="Show conjugation">
+                              <IconButton
+                                aria-label="Show conjugation"
+                                icon={<FaLanguage size={32} />}
+                                size="md"
+                                colorScheme="blue"
+                                variant="ghost"
+                                onClick={onOpen}
+                              />
+                            </Tooltip>
+                          )}
+                        </HStack>
+                      </Flex>
+                    </CardHeader>
+                    <CardBody>
+                      {meanings.length > 0 ? (
+                        <>
+                          <SimpleGrid columns={meanings.length > 1 ? 2 : 1} spacing={4}>
+                            {meanings.map((meaning: any, index: number) => (
+                              <Box key={index} mb={index === meanings.length - 1 ? 0 : 4}>
+                                <Box display="flex" alignItems="baseline" mb={1}>
+                                  <Text as="span" fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase" mr={2}>
+                                    {meaning.type}
+                                  </Text>
+                                  <Text as="span" fontWeight="medium" fontSize="md">
+                                    {meaning.value}
+                                  </Text>
                                 </Box>
-                              ))
-                            }
-                            
-                            {(lang === 'French' && languageTranslation.conjugation !== undefined) && (
-                              <>
-                                <Box display="flex" justifyContent="flex-end" mt={4}>
-                                  <Button colorScheme="blue" onClick={onOpen}>
-                                    Conjugation
-                                  </Button>
-                                </Box>
-                                <FrenchContent
-                                  isOpen={isOpen}
-                                  conjugationData={languageTranslation.conjugation}
-                                  onClose={onClose}
-                                />
-                              </>
-                            )}
-                          </>
-                        ) : (
-                          <Text>No data available yet.</Text>
-                        )}
-                            
-
-                            
-                      </CardBody>
-                    </Card>
-                  );
-                }
-              )
-            }
-          </SimpleGrid>
-        </Box>
+                                <List spacing={1} pl={4}>
+                                  {Object.keys(meaning)
+                                    .filter(key => key.startsWith('example'))
+                                    .sort((a, b) => parseInt(a.replace('example', '')) - parseInt(b.replace('example', '')))
+                                    .map(key => (
+                                      <ListItem key={key} fontStyle="italic" color="gray.700">
+                                        "{meaning[key]}"
+                                      </ListItem>
+                                    ))}
+                                </List>
+                              </Box>
+                            ))}
+                          </SimpleGrid>
+                        </>
+                      ) : (
+                        <Text>No data available yet.</Text>
+                      )}
+                    </CardBody>
+                  </Card>
+                </Box>
+              );
+            })}
+          </Box>
+        </HStack>
+        <FrenchContent
+          isOpen={isOpen}
+          conjugationData={findLanguageData('French')?.conjugation}
+          onClose={onClose}
+        />
       </VStack>
     </div>
   );
