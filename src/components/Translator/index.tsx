@@ -169,7 +169,24 @@ const Translator = () => {
             </Menu>
           </Box>
         </HStack>
-        {renderButtons(translateButton, 'cyan', !sourceLanguage || !destinationLanguages.length)}
+        <HStack spacing={4} w="100%" alignItems="flex-start">
+          <Box flex="1">
+            {translateButton.map((btn, i) => (
+              <Tooltip key={i} hasArrow label={btn.tooltip}>
+                <Button
+                  colorScheme="cyan"
+                  variant="solid"
+                  width="100%"
+                  height="45px"
+                  minWidth="200px"
+                  isDisabled={!sourceLanguage || !destinationLanguages.length}
+                >
+                  {btn.name}
+                </Button>
+              </Tooltip>
+            ))}
+          </Box>
+        </HStack>
       </VStack>
     );
   };

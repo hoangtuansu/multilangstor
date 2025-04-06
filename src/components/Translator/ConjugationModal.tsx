@@ -21,7 +21,52 @@ import {
   VStack,
 } from '@chakra-ui/react';
 
-function ConjugationModal({ isOpen, conjugationData, onClose }: { isOpen: boolean, conjugationData: any, onClose: () => void }) {
+interface ConjugationForms {
+  je?: string;
+  tu?: string;
+  'il/elle'?: string;
+  nous?: string;
+  vous?: string;
+  'ils/elles'?: string;
+}
+
+interface ConjugationTense {
+  [key: string]: ConjugationForms;
+}
+
+interface ConjugationMode {
+  [key: string]: ConjugationTense | string;
+}
+
+interface ConjugationData {
+  indicative?: ConjugationMode;
+  subjonctif?: ConjugationMode;
+  conditionnel?: ConjugationMode;
+  impératif?: ConjugationMode;
+  participe?: {
+    présent?: string;
+    passé?: {
+      masculin?: string;
+      féminin?: string;
+      masculin_pluriel?: string;
+      féminin_pluriel?: string;
+    };
+  };
+  gérondif?: {
+    présent?: string;
+  };
+  infinitif?: {
+    présent?: string;
+  };
+}
+
+interface ConjugationModalProps {
+  isOpen: boolean;
+  conjugationData: ConjugationData | null;
+  onClose: () => void;
+}
+
+function ConjugationModal({ isOpen, conjugationData, onClose }: ConjugationModalProps) {
   const conjugationModes = {
     indicative: "Indicative",
     subjonctif: "Subjunctive",
@@ -32,40 +77,36 @@ function ConjugationModal({ isOpen, conjugationData, onClose }: { isOpen: boolea
     infinitif: "Infinitive"
   };
 
-  const renderParticipeTable = (data: any) => {
-    if (!data || typeof data !== 'object') return null;
+  const renderParticipeTable = (data: ConjugationData['participe']) => {
+    if (!data) return null;
 
     return (
       <Box mb={6} p={4} borderRadius="md" borderWidth="1px" borderColor="gray.200">
         <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-          {Object.entries(data).map(([form, value]: [string, any]) => {
-            if (form === 'passé') {
-              return Object.entries(value).map(([gender, conjugation]) => (
-                <React.Fragment key={gender}>
-                  <GridItem><Text fontWeight="bold">{gender}</Text></GridItem>
-                  <GridItem><Text>{conjugation || '-'}</Text></GridItem>
-                </React.Fragment>
-              ));
-            }
-            return (
-              <React.Fragment key={form}>
-                <GridItem><Text fontWeight="bold">{form}</Text></GridItem>
-                <GridItem><Text>{value || '-'}</Text></GridItem>
-              </React.Fragment>
-            );
-          })}
+          {data.présent && (
+            <>
+              <GridItem><Text fontWeight="bold">Présent</Text></GridItem>
+              <GridItem><Text>{data.présent}</Text></GridItem>
+            </>
+          )}
+          {data.passé && Object.entries(data.passé).map(([gender, conjugation]) => (
+            <React.Fragment key={gender}>
+              <GridItem><Text fontWeight="bold">{gender}</Text></GridItem>
+              <GridItem><Text>{conjugation || '-'}</Text></GridItem>
+            </React.Fragment>
+          ))}
         </Grid>
       </Box>
     );
   };
 
-  const renderSimpleTable = (data: any) => {
-    if (!data || typeof data !== 'object') return null;
+  const renderSimpleTable = (data: { [key: string]: string | undefined }) => {
+    if (!data) return null;
 
     return (
       <Box mb={6} p={4} borderRadius="md" borderWidth="1px" borderColor="gray.200">
         <Grid templateColumns="repeat(2, 1fr)" gap={4}>
-          {Object.entries(data).map(([form, value]: [string, any]) => (
+          {Object.entries(data).map(([form, value]) => (
             <React.Fragment key={form}>
               <GridItem><Text fontWeight="bold">{form}</Text></GridItem>
               <GridItem><Text>{value || '-'}</Text></GridItem>
@@ -76,8 +117,8 @@ function ConjugationModal({ isOpen, conjugationData, onClose }: { isOpen: boolea
     );
   };
 
-  const renderConjugationTable = (data: any) => {
-    if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
+  const renderConjugationTable = (data: ConjugationMode) => {
+    if (!data || Object.keys(data).length === 0) {
       return null;
     }
 
@@ -113,8 +154,8 @@ function ConjugationModal({ isOpen, conjugationData, onClose }: { isOpen: boolea
     );
   };
 
-  const renderImperativeTable = (data: any) => {
-    if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
+  const renderImperativeTable = (data: ConjugationMode) => {
+    if (!data || Object.keys(data).length === 0) {
       return null;
     }
 
@@ -158,7 +199,7 @@ function ConjugationModal({ isOpen, conjugationData, onClose }: { isOpen: boolea
             <Tabs isFitted variant="enclosed" h="100%">
               <TabList mb="1em">
                 {Object.entries(conjugationModes).map(([key, label]) => (
-                  conjugationData?.[key] && Object.keys(conjugationData[key]).length > 0 && (
+                  conjugationData?.[key as keyof ConjugationData] && Object.keys(conjugationData[key as keyof ConjugationData] || {}).length > 0 && (
                     <Tab key={key}>{label}</Tab>
                   )
                 ))}

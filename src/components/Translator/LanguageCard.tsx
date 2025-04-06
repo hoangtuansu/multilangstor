@@ -12,9 +12,11 @@ import {
   Text,
   List,
   ListItem,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { FaLanguage, FaBook } from 'react-icons/fa';
 import chroma from 'chroma-js';
+import IdiomModal from './IdiomModal';
 
 interface LanguageCardProps {
   lang: string;
@@ -24,6 +26,8 @@ interface LanguageCardProps {
 }
 
 const LanguageCard = ({ lang, languageTranslation, onConjugationClick, onIdiomClick }: LanguageCardProps) => {
+  const { isOpen: isIdiomModalOpen, onOpen: onIdiomModalOpen, onClose: onIdiomModalClose } = useDisclosure();
+
   const getColorByName = (languageName: string): string => {
     const languageOptions = [
       { name: 'English', color: '#00B8D9' },
@@ -41,77 +45,87 @@ const LanguageCard = ({ lang, languageTranslation, onConjugationClick, onIdiomCl
   const meanings = languageTranslation?.meaning || [];
 
   return (
-    <Card w="100%">
-      <CardHeader 
-        bg={chroma(getColorByName(lang)).alpha(0.2).css()} 
-        py={1}
-        h="48px"
-        display="flex"
-        alignItems="center"
-      >
-        <Flex justify="space-between" align="center" gap={2}>
-          <Heading size="sm" textTransform="uppercase">
-            {lang}
-          </Heading>
-          <HStack spacing={2}>
-            <Tooltip label="Show idioms">
-              <IconButton
-                aria-label="Show idioms"
-                icon={<FaBook size={22} />}
-                size="md"
-                colorScheme="blue"
-                variant="ghost"
-                onClick={onIdiomClick}
-              />
-            </Tooltip>
-            {lang === 'French' && languageTranslation?.conjugation && Object.keys(languageTranslation.conjugation).length > 0 && (
-              <Tooltip label="Show conjugation">
+    <>
+      <Card w="100%">
+        <CardHeader 
+          bg={chroma(getColorByName(lang)).alpha(0.2).css()} 
+          py={1}
+          h="48px"
+          display="flex"
+          alignItems="center"
+        >
+          <Flex justify="space-between" align="center" gap={2}>
+            <Heading size="sm" textTransform="uppercase">
+              {lang}
+            </Heading>
+            <HStack spacing={2}>
+              <Tooltip label="Show idioms">
                 <IconButton
-                  aria-label="Show conjugation"
-                  icon={<FaLanguage size={32} />}
+                  aria-label="Show idioms"
+                  icon={<FaBook size={22} />}
                   size="md"
                   colorScheme="blue"
                   variant="ghost"
-                  onClick={onConjugationClick}
+                  onClick={() => {
+                    onIdiomClick();
+                    onIdiomModalOpen();
+                  }}
                 />
               </Tooltip>
-            )}
-          </HStack>
-        </Flex>
-      </CardHeader>
-      <CardBody>
-        {meanings.length > 0 ? (
-          <>
-            <SimpleGrid columns={meanings.length > 1 ? 2 : 1} spacing={4}>
-              {meanings.map((meaning: any, index: number) => (
-                <Box key={index} mb={index === meanings.length - 1 ? 0 : 4}>
-                  <Box display="flex" alignItems="baseline" mb={1}>
-                    <Text as="span" fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase" mr={2}>
-                      {meaning.type}
-                    </Text>
-                    <Text as="span" fontWeight="medium" fontSize="md">
-                      {meaning.value}
-                    </Text>
+              {lang === 'French' && languageTranslation?.conjugation && Object.keys(languageTranslation.conjugation).length > 0 && (
+                <Tooltip label="Show conjugation">
+                  <IconButton
+                    aria-label="Show conjugation"
+                    icon={<FaLanguage size={32} />}
+                    size="md"
+                    colorScheme="blue"
+                    variant="ghost"
+                    onClick={onConjugationClick}
+                  />
+                </Tooltip>
+              )}
+            </HStack>
+          </Flex>
+        </CardHeader>
+        <CardBody>
+          {meanings.length > 0 ? (
+            <>
+              <SimpleGrid columns={meanings.length > 1 ? 2 : 1} spacing={4}>
+                {meanings.map((meaning: any, index: number) => (
+                  <Box key={index} mb={index === meanings.length - 1 ? 0 : 4}>
+                    <Box display="flex" alignItems="baseline" mb={1}>
+                      <Text as="span" fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase" mr={2}>
+                        {meaning.type}
+                      </Text>
+                      <Text as="span" fontWeight="medium" fontSize="md">
+                        {meaning.value}
+                      </Text>
+                    </Box>
+                    <List spacing={1} pl={4}>
+                      {Object.keys(meaning)
+                        .filter(key => key.startsWith('example'))
+                        .sort((a, b) => parseInt(a.replace('example', '')) - parseInt(b.replace('example', '')))
+                        .map(key => (
+                          <ListItem key={key} fontStyle="italic" color="gray.700">
+                            "{meaning[key]}"
+                          </ListItem>
+                        ))}
+                    </List>
                   </Box>
-                  <List spacing={1} pl={4}>
-                    {Object.keys(meaning)
-                      .filter(key => key.startsWith('example'))
-                      .sort((a, b) => parseInt(a.replace('example', '')) - parseInt(b.replace('example', '')))
-                      .map(key => (
-                        <ListItem key={key} fontStyle="italic" color="gray.700">
-                          "{meaning[key]}"
-                        </ListItem>
-                      ))}
-                  </List>
-                </Box>
-              ))}
-            </SimpleGrid>
-          </>
-        ) : (
-          <Text>No data available yet.</Text>
-        )}
-      </CardBody>
-    </Card>
+                ))}
+              </SimpleGrid>
+            </>
+          ) : (
+            <Text>No data available yet.</Text>
+          )}
+        </CardBody>
+      </Card>
+      <IdiomModal 
+        isOpen={isIdiomModalOpen} 
+        idioms={languageTranslation?.idioms} 
+        onClose={onIdiomModalClose} 
+      />
+    </>
   );
 };
 
