@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: multilangstor
 spec:
-  replicas: 2 # Adjust as needed
+  replicas: 1 # Adjust as needed
   selector:
     matchLabels:
       app: multilangstor
@@ -40,6 +40,7 @@ spec:
       port: 80 # Service port
       targetPort: 3000 # Container port
   type: ClusterIP # Or LoadBalancer for external access
+  ClusterIP: None
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
