@@ -24,7 +24,7 @@ build:
     - mkdir -p /etc/containers/certs.d/$REGISTRY_URL
     - echo "$REGISTRY_CERTIFICATE" > /etc/containers/certs.d/$REGISTRY_URL/ca.crt
     - update-ca-trust
-    - podman build . -t $IMAGE_NAME:$CI_COMMIT_SHA -t $IMAGE_NAME:latest
+    - podman build --build-arg GEMINI_API_KEY=$GEMINI_API_KEY . -t $IMAGE_NAME:$CI_COMMIT_SHA -t $IMAGE_NAME:latest
     - podman push $IMAGE_NAME:$CI_COMMIT_SHA
     - podman push $IMAGE_NAME:latest
   only:
