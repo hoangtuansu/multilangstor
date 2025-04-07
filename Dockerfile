@@ -19,7 +19,6 @@ RUN echo "GEMINI_API_KEY=$GEMINI_API_KEY" > /app/.env
 
 RUN pnpm build
 
-RUN rm /app/.env
 
 EXPOSE 3000
 
