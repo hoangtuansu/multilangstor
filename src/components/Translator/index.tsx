@@ -256,16 +256,47 @@ const Translator = () => {
           }}>
             <Tabs 
               orientation="vertical" 
-              variant="enclosed" 
+              variant="unstyled"
               index={activeTab}
               onChange={setActiveTab}
             >
-              <TabList>
-                {destinationLanguages.map((lang) => (
-                  <Tab key={lang} justifyContent="flex-start">
-                    {lang}
-                  </Tab>
-                ))}
+              <TabList gap={2}>
+                {destinationLanguages.map((lang) => {
+                  const color = getColorByName(lang);
+                  return (
+                    <Tab 
+                      key={lang} 
+                      justifyContent="flex-start"
+                      position="relative"
+                      _selected={{
+                        color: 'white',
+                        bg: color,
+                        _before: {
+                          content: '""',
+                          position: 'absolute',
+                          left: 0,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '4px',
+                          height: '60%',
+                          bg: color,
+                          borderRadius: '0 4px 4px 0',
+                        }
+                      }}
+                      _hover={{
+                        bg: `${color}20`,
+                        color: color,
+                      }}
+                      transition="all 0.2s ease-in-out"
+                      borderRadius="md"
+                      px={4}
+                      py={2}
+                      fontWeight="medium"
+                    >
+                      {lang}
+                    </Tab>
+                  );
+                })}
               </TabList>
             </Tabs>
           </Box>
