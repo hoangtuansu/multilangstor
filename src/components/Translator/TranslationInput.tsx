@@ -1,5 +1,5 @@
 import { Textarea } from '@chakra-ui/react';
-import { useRef, useState } from 'react';
+import { useRef, useState, forwardRef, useImperativeHandle } from 'react';
 
 interface TranslationInputProps {
   onTranslationComplete: (result: any) => void;
@@ -7,10 +7,15 @@ interface TranslationInputProps {
   selectedLanguages: string[];
 }
 
-const TranslationInput = ({ onTranslationComplete, onLoadingChange, selectedLanguages }: TranslationInputProps) => {
+export interface TranslationInputRef {
+  processTextForLanguages: () => Promise<void>;
+}
+
+const TranslationInput = forwardRef<TranslationInputRef, TranslationInputProps>(({ onTranslationComplete, onLoadingChange, selectedLanguages }, ref) => {
   const contentRef = useRef<HTMLTextAreaElement | null>(null);
   const timeoutId = useRef<any>(null);
   const specialKeyPressed = useRef(false);
+  const spaceKeyTimeoutId = useRef<any>(null);
   const [textToTranslate, setTextToTranslate] = useState('');
 
   const processTextForLanguages = async () => {
@@ -38,6 +43,7 @@ const TranslationInput = ({ onTranslationComplete, onLoadingChange, selectedLang
       }
 
       const data = await response.json();
+      console.log('Translation response:', data);
       onTranslationComplete(data.result || { languages: [] });
     } catch (error) {
       console.error("Error processing text:", error);
@@ -47,12 +53,17 @@ const TranslationInput = ({ onTranslationComplete, onLoadingChange, selectedLang
     }
   };
 
+  useImperativeHandle(ref, () => ({
+    processTextForLanguages
+  }));
+
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' || event.key === ' ') {
+    if (event.key === 'Enter') {
       specialKeyPressed.current = true;
       setTextToTranslate((event.currentTarget as HTMLTextAreaElement).value);
       processTextForLanguages();
-    }
+      return;
+    } 
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -84,6 +95,8 @@ const TranslationInput = ({ onTranslationComplete, onLoadingChange, selectedLang
       resize="vertical"
     />
   );
-};
+});
+
+TranslationInput.displayName = 'TranslationInput';
 
 export default TranslationInput; 

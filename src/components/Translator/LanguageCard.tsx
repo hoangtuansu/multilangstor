@@ -43,6 +43,7 @@ const LanguageCard = ({ lang, languageTranslation, onConjugationClick, onIdiomCl
   };
 
   const meanings = languageTranslation?.meaning || [];
+  console.log("Meanings: ", meanings)
 
   return (
     <>

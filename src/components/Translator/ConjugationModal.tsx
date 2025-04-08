@@ -196,11 +196,40 @@ function ConjugationModal({ isOpen, conjugationData, onClose }: ConjugationModal
         <ModalCloseButton />
         <ModalBody h="calc(600px - 120px)">
           {conjugationData ? (
-            <Tabs isFitted variant="enclosed" h="100%">
-              <TabList mb="1em">
+            <Tabs isFitted variant="unstyled" h="100%">
+              <TabList mb="1em" gap={2}>
                 {Object.entries(conjugationModes).map(([key, label]) => (
                   conjugationData?.[key as keyof ConjugationData] && Object.keys(conjugationData[key as keyof ConjugationData] || {}).length > 0 && (
-                    <Tab key={key}>{label}</Tab>
+                    <Tab 
+                      key={key}
+                      position="relative"
+                      _selected={{
+                        color: 'white',
+                        bg: 'blue.500',
+                        _before: {
+                          content: '""',
+                          position: 'absolute',
+                          left: 0,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '4px',
+                          height: '60%',
+                          bg: 'blue.500',
+                          borderRadius: '0 4px 4px 0',
+                        }
+                      }}
+                      _hover={{
+                        bg: 'blue.50',
+                        color: 'blue.500',
+                      }}
+                      transition="all 0.2s ease-in-out"
+                      borderRadius="md"
+                      px={4}
+                      py={2}
+                      fontWeight="medium"
+                    >
+                      {label}
+                    </Tab>
                   )
                 ))}
               </TabList>

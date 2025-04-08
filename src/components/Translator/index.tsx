@@ -28,10 +28,10 @@ import {
 } from '@chakra-ui/react';
 import { FaLanguage, FaBook } from 'react-icons/fa';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import chroma from 'chroma-js';
 import ConjugationModal from './ConjugationModal';
-import TranslationInput from './TranslationInput';
+import TranslationInput, { TranslationInputRef } from './TranslationInput';
 import LanguageCard from './LanguageCard';
 
 interface LanguageOption {
@@ -64,6 +64,7 @@ const Translator = () => {
   const [loadingPrompt, setLoadingPrompt] = useState(false);
   const [meaningResult, setMeaningResult] = useState({ languages: [] });
   const [activeTab, setActiveTab] = useState(0);
+  const translationInputRef = useRef<TranslationInputRef>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -96,13 +97,15 @@ const Translator = () => {
 
   const findLanguageData = (langValue: string) => {
     if (!meaningResult || !meaningResult.languages || !Array.isArray(meaningResult.languages)) {
-      return [];
+      console.log('No meaning result or invalid data structure:', meaningResult);
+      return {};
     }
     
     const language = meaningResult.languages.find(
       (lang: any) => lang.language?.toLowerCase() === langValue.toLowerCase()
     );
     
+    console.log('Found language data for', langValue, ':', language);
     return language || {};
   };
 
@@ -180,6 +183,9 @@ const Translator = () => {
                   height="45px"
                   minWidth="200px"
                   isDisabled={!sourceLanguage || !destinationLanguages.length}
+                  onClick={() => {
+                    translationInputRef.current?.processTextForLanguages();
+                  }}
                 >
                   {btn.name}
                 </Button>
@@ -230,6 +236,7 @@ const Translator = () => {
         <VStack w="100%" spacing={2} alignItems="flex-start" flexShrink={0}>
           <HStack alignItems="flex-start" w="100%" gap={2}>
             <TranslationInput
+              ref={translationInputRef}
               onTranslationComplete={(result) => {
                 setMeaningResult(result);
               }}
@@ -323,6 +330,7 @@ const Translator = () => {
             {destinationLanguages.map((lang, index) => {
               const languageTranslation = findLanguageData(lang);
               const meanings = languageTranslation?.meaning || [];
+              console.log('Rendering card for', lang, 'with meanings:', meanings);
               return (
                 <Box 
                   key={lang} 

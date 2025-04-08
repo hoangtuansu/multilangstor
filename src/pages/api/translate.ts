@@ -25,20 +25,21 @@ function classifyText(text: string): string {
   if (!trimmedText) {
     return "Empty input";
   }
-
   // Basic checks
   const wordRegex = /^\w+$/; // Matches a single word
   const sentenceRegex = /^[A-Z].*[\.\?\!]$/; // Matches a sentence
-  const paragraphRegex = /^(.|\n){50,}$/; // Matches a paragraph (50+ chars)
-  // Idiom detection is much harder and requires more sophisticated techniques.
-  // For demonstration, a simple (and very limited) check.
+  const paragraphRegex = /^[^\n]{50,}$/; // Matches a paragraph (50+ chars) without newlines
+  const multiLineRegex = /^(.+(\n)+)+.+$/; // Matches multiple lines separated by any type of newline(s)
+
 
   if (wordRegex.test(trimmedText)) {
     return "Word";
   } else if (paragraphRegex.test(trimmedText)) {
     return "Paragraph";
+  } else if (multiLineRegex.test(trimmedText)) {
+    return "Multiple lines";
   } else if (sentenceRegex.test(trimmedText)) {
-    return "Phrase/Sentence";
+    return "Phrase or Sentence";
   } else {
     return "Unclassified";
   }
@@ -58,25 +59,22 @@ async function getTextMeanings(
   const wordType = classifyText(word);
   console.log(`Classified input as: ${wordType}`);
 
-  const schemaInstructions = await getSchemaInstructions(exampleCount, wordType);
-
-  console.log("Schema instruction: ", schemaInstructions)
-  
+  const schemaInstructions = await getSchemaInstructions(exampleCount, word, wordType);
+ 
   const response = await openai.chat.completions.create({
     model: "gemini-2.0-flash",
     messages: [
       { 
         role: "system", 
         content: `You are a multilingual assistant that provides \
-                  word meanings with ${exampleCount} examples for \
-                  each meaning. Always respond with a valid JSON \
-                  object following the exact schema specifications.` 
+                  text meanings and several examples for each meaning \
+                  in case the text is provided as a word or idiom or short phrase. \
+                  Always respond with a valid JSON object following the exact schema specifications.` 
       },
       { 
         role: "user", 
-        content: `Provide meanings and ${exampleCount} usage examples \
-                  for the word "${word}" in the following languages: \
-                  ${languageList}. ${schemaInstructions}` 
+        content: `Provide meanings for the text "${word}" in the following languages: \
+                  ${languageList}. ${schemaInstructions}`
       }
     ],
     temperature: 0.2
@@ -90,8 +88,8 @@ async function getTextMeanings(
     const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || 
                      text.match(/\{[\s\S]*\}/);
                      
-    let parsedResponse: { languages: LanguageMeaning[] };
-    
+    let parsedResponse: LanguageMeaning[];
+
     if (jsonMatch) {
       // If JSON was returned in a code block or can be identified
       parsedResponse = JSON.parse(jsonMatch[0].replace(/```json\n|```/g, ''));
@@ -100,7 +98,8 @@ async function getTextMeanings(
       parsedResponse = JSON.parse(text);
     }
     
-    return parsedResponse;
+    return { languages: parsedResponse };
+    
   } catch (error) {
     console.error('Error parsing JSON response:', error);
     console.log('Raw response:', response.choices[0].message.content);
@@ -124,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   console.log("Text to be translated: ", textToTranslate)
   try {
     const wordData = await getTextMeanings(textToTranslate, req.body.languages, 3);
-    console.log(JSON.stringify(wordData, null, 2));
+    console.log("Translated text: ", JSON.stringify(wordData, null, 2));
     
     res.status(200).json({ result: wordData });
 
