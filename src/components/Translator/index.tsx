@@ -184,7 +184,7 @@ const Translator = () => {
                   minWidth="200px"
                   isDisabled={!sourceLanguage || !destinationLanguages.length}
                   onClick={() => {
-                    translationInputRef.current?.processTextForLanguages();
+                    translationInputRef.current?.transalteInputText();
                   }}
                 >
                   {btn.name}

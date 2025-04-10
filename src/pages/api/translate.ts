@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { getSchemaInstructions } from '@/lib/schemaGenerator';
+import { getSchemaInstructions, TextClass } from '@/lib/schemaGenerator';
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -16,6 +16,7 @@ interface Meaning {
 
 interface LanguageMeaning {
   language: string;
+  textClass: TextClass;
   meaning: Meaning[];
 }
 
@@ -33,15 +34,15 @@ function classifyText(text: string): string {
 
 
   if (wordRegex.test(trimmedText)) {
-    return "Word";
+    return TextClass.Word;
   } else if (paragraphRegex.test(trimmedText)) {
-    return "Paragraph";
+    return TextClass.Paragraph;
   } else if (multiLineRegex.test(trimmedText)) {
-    return "Multiple lines";
+    return TextClass.MultipleLines;
   } else if (sentenceRegex.test(trimmedText)) {
-    return "Phrase or Sentence";
+    return TextClass.Phrase;
   } else {
-    return "Unclassified";
+    return TextClass.Unclassified;
   }
 }
 

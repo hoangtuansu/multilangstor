@@ -17,6 +17,7 @@ import {
 import { FaLanguage, FaBook } from 'react-icons/fa';
 import chroma from 'chroma-js';
 import IdiomModal from './IdiomModal';
+import { TextClass } from '@/lib/schemaGenerator';
 
 interface LanguageCardProps {
   lang: string;
@@ -43,7 +44,8 @@ const LanguageCard = ({ lang, languageTranslation, onConjugationClick, onIdiomCl
   };
 
   const meanings = languageTranslation?.meaning || [];
-  console.log("Meanings: ", meanings)
+
+  const translatedTextClass = languageTranslation.textClass;
 
   return (
     <>
@@ -91,13 +93,15 @@ const LanguageCard = ({ lang, languageTranslation, onConjugationClick, onIdiomCl
         <CardBody>
           {meanings.length > 0 ? (
             <>
-              <SimpleGrid columns={meanings.length > 1 ? 2 : 1} spacing={4}>
+              <SimpleGrid columns={translatedTextClass == TextClass.MultipleLines ? 1 :(meanings.length > 1 ? 2 : 1)} spacing={4}>
                 {meanings.map((meaning: any, index: number) => (
                   <Box key={index} mb={index === meanings.length - 1 ? 0 : 4}>
                     <Box display="flex" alignItems="baseline" mb={1}>
+                    {translatedTextClass !== TextClass.MultipleLines && (
                       <Text as="span" fontWeight="bold" fontSize="xs" color="gray.500" textTransform="uppercase" mr={2}>
                         {meaning.type}
                       </Text>
+                    )}
                       <Text as="span" fontWeight="medium" fontSize="md">
                         {meaning.value}
                       </Text>

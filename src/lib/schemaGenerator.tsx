@@ -1,3 +1,11 @@
+export enum TextClass {
+  Word = "Word",
+  Phrase = "Phrase or Sentence",
+  Paragraph = "Paragraph",
+  MultipleLines = "Multiple lines",
+  Unclassified = "Unclassified"
+}
+
 export async function getSchemaInstructions(
     exampleCount: number = 2,
     word: string,
@@ -126,9 +134,10 @@ export async function getSchemaInstructions(
                 }`
 
     const conditionalWord = `
-                ... if ${wordType} is a "Word", include:
+                ... if ${wordType} is a ${TextClass.Word}, include:
                 "{
                   "language": "LanguageName",
+                  "textClass": ${TextClass.Word},
                   "meaning": [
                     {
                       "value": "meaning-in-this-language",
@@ -139,18 +148,20 @@ export async function getSchemaInstructions(
                   ],
                   ${conditionaledFrenchConjugation}
                 }
-                ... if ${wordType} is a "Phrase or Sentence" or a "Paragraph", do not include examples, only include:
+                ... if ${wordType} is a ${TextClass.Phrase} or a ${TextClass.Paragraph} , do not include examples, only include:
                 "{
                   "language": "LanguageName",
+                  "textClass": ${wordType},
                   "meaning": [
                     {
                       "value": "meaning-in-this-language",
                     }
                   ]
                 }
-                ... if ${wordType} is a "Multiple lines", do not include examples, only include:
+                ... if ${wordType} is a ${TextClass.MultipleLines}, do not include examples, only include:
                 "{
                   "language": "LanguageName",
+                  "textClass": ${TextClass.MultipleLines},
                   "meaning": [
                     ...${word.split('\n').map(line => `{
                       "value": "meaning-of-'${line.trim()}'-in-this-language"

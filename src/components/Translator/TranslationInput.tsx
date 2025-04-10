@@ -1,5 +1,5 @@
 import { Textarea } from '@chakra-ui/react';
-import { useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useRef, useState, forwardRef, useImperativeHandle, ChangeEvent, ClipboardEvent } from 'react';
 
 interface TranslationInputProps {
   onTranslationComplete: (result: any) => void;
@@ -8,7 +8,7 @@ interface TranslationInputProps {
 }
 
 export interface TranslationInputRef {
-  processTextForLanguages: () => Promise<void>;
+  transalteInputText: () => Promise<void>;
 }
 
 const TranslationInput = forwardRef<TranslationInputRef, TranslationInputProps>(({ onTranslationComplete, onLoadingChange, selectedLanguages }, ref) => {
@@ -18,9 +18,24 @@ const TranslationInput = forwardRef<TranslationInputRef, TranslationInputProps>(
   const spaceKeyTimeoutId = useRef<any>(null);
   const [textToTranslate, setTextToTranslate] = useState('');
 
-  const processTextForLanguages = async () => {
+  const preProcessBeforeTranslation = () => {
+    // Remove extra new lines and trim the text
+    const trimmedText = textToTranslate.replace(/\n\s*\n/g, '\n').trim();
+    if (trimmedText !== textToTranslate) {
+      setTextToTranslate(trimmedText);
+    }
+  };
+
+  const postProcessBeforeTranslation = (text: any) => {
+    console.log("Post-processing translation result:", text);
+    return text;
+  };
+
+  const transalteInputText = async () => {
     if (!textToTranslate) return;
-       
+    
+    preProcessBeforeTranslation();
+    
     try {
       onLoadingChange(true);
       const response = await fetch('/api/translate', {
@@ -43,8 +58,8 @@ const TranslationInput = forwardRef<TranslationInputRef, TranslationInputProps>(
       }
 
       const data = await response.json();
-      console.log('Translation response:', data);
-      onTranslationComplete(data.result || { languages: [] });
+      const processedResult = postProcessBeforeTranslation(data.result);
+      onTranslationComplete(processedResult || { languages: [] });
     } catch (error) {
       console.error("Error processing text:", error);
       onTranslationComplete({ languages: [] });
@@ -54,34 +69,30 @@ const TranslationInput = forwardRef<TranslationInputRef, TranslationInputProps>(
   };
 
   useImperativeHandle(ref, () => ({
-    processTextForLanguages
+    transalteInputText
   }));
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
       specialKeyPressed.current = true;
       setTextToTranslate((event.currentTarget as HTMLTextAreaElement).value);
-      processTextForLanguages();
+      transalteInputText();
       return;
     } 
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (specialKeyPressed.current) {
-      specialKeyPressed.current = false;
-      setTextToTranslate(e.target.value);
-      return;
-    }
-
     setTextToTranslate(e.target.value);
-    clearTimeout(timeoutId.current);
-
-    timeoutId.current = setTimeout(() => {
-      if (e.target.value) {
-        processTextForLanguages();
-      }
-    }, 2000);
   };
+
+  const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    // Get pasted content
+    const pastedText = event.clipboardData.getData('text')
+    console.log('Content pasted:', pastedText);
+    setTextToTranslate(pastedText);
+    transalteInputText();
+  };
+  
 
   return (
     <Textarea
@@ -89,6 +100,7 @@ const TranslationInput = forwardRef<TranslationInputRef, TranslationInputProps>(
       value={textToTranslate}
       onChange={handleChange}
       onKeyDown={handleKeyDown}
+      onPaste={handlePaste}
       placeholder="Enter text to translate..."
       size="lg"
       minH="200px"
