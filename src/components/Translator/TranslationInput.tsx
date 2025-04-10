@@ -85,13 +85,6 @@ const TranslationInput = forwardRef<TranslationInputRef, TranslationInputProps>(
     setTextToTranslate(e.target.value);
   };
 
-  const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-    // Get pasted content
-    const pastedText = event.clipboardData.getData('text')
-    console.log('Content pasted:', pastedText);
-    setTextToTranslate(pastedText);
-    transalteInputText();
-  };
   
 
   return (
@@ -100,7 +93,6 @@ const TranslationInput = forwardRef<TranslationInputRef, TranslationInputProps>(
       value={textToTranslate}
       onChange={handleChange}
       onKeyDown={handleKeyDown}
-      onPaste={handlePaste}
       placeholder="Enter text to translate..."
       size="lg"
       minH="200px"

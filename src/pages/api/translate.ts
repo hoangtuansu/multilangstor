@@ -61,7 +61,8 @@ async function getTextMeanings(
   console.log(`Classified input as: ${wordType}`);
 
   const schemaInstructions = await getSchemaInstructions(exampleCount, word, wordType);
- 
+  console.log(`Schema instructions: ${schemaInstructions}`);
+  
   const response = await openai.chat.completions.create({
     model: "gemini-2.0-flash",
     messages: [

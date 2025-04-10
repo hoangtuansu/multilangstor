@@ -134,7 +134,7 @@ export async function getSchemaInstructions(
                 }`
 
     const conditionalWord = `
-                ... if ${wordType} is a ${TextClass.Word}, include:
+                ... if text to be translated is a ${TextClass.Word}, include:
                 "{
                   "language": "LanguageName",
                   "textClass": ${TextClass.Word},
@@ -148,7 +148,7 @@ export async function getSchemaInstructions(
                   ],
                   ${conditionaledFrenchConjugation}
                 }
-                ... if ${wordType} is a ${TextClass.Phrase} or a ${TextClass.Paragraph} , do not include examples, only include:
+                ... if text to be translated is a ${TextClass.Phrase} or a ${TextClass.Paragraph} , do not include examples, only include:
                 "{
                   "language": "LanguageName",
                   "textClass": ${wordType},
@@ -158,7 +158,7 @@ export async function getSchemaInstructions(
                     }
                   ]
                 }
-                ... if ${wordType} is a ${TextClass.MultipleLines}, do not include examples, only include:
+                ... if text to be translated is a ${TextClass.MultipleLines}, do not include examples, only include:
                 "{
                   "language": "LanguageName",
                   "textClass": ${TextClass.MultipleLines},
